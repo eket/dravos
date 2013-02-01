@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>art:code:demo</title>
+<style>*{margin:0}html{background:#002b36}</style>
+</head>
+<body>
+<div id="title" style="height:50px; margin-left:10px; margin-top:10px; position:fixed">
+  <div src="/avos_logo.png" style="float:left;height:50px;width:50px"></div>
+  <h1 style="font:25px sans;color:white; margin-top:10px;margin-left:10px;float:left">
+    <span style="color:grey">http://</span>eket.su</h1>
+  <div style="clear:both"></div>
+</div>
+<div id="ct"></div>
+<script src="/lodash.min.js"></script>
+<script src="/raphael-min.js"></script>
+<script src="/coffee-script.js"></script>
+<script src="/jquery-1.9.0.min.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+
+<script type="text/coffeescript">
+_add_event_listener = (el, event_key, fun) ->
+  el.addEventListener event, ((e) ->
+    fun e
+    e.preventDefault()), no for event in _events[event_key]
+_get_x = (e, i=0) ->
+  (e.targetTouches?[i].pageX or e.clientX) / $(window).width()
+
+_get_y = (e, i=0) ->
+  (e.targetTouches?[i].pageY or e.clientY) / $(window).height()
+
+_events =
+  down: ['mousedown', 'touchstart']
+  up: ['mouseup', 'touchend']
+  move: ['mousemove', 'touchmove']
+
+s = null
+c = 0
+ims = []
+colors = ['#b58900', '#cb4b16', '#dc322f', '#d33682', '#6c71c4', '#268bd2', '#2aa198', '#859900', '#fdf6e3', '#586e75']
+color = colors[Math.floor(_.random(0,8.999999))]
+
+
+_draw = (color, x1, y1) ->
+  [x, y] = [x1*$(window).width(), y1*$(window).height()]
+  (c = 0) if c >= 1000
+  c += 1
+  #im = ims[c]
+  #im = s.image '/avos_logo.png', 0,0,50,50
+  im = s.path 'M25 3, L 0 50, L 50 50, L 25 3 Z'
+  im.attr "stroke-width", 0
+  im.attr "fill", color
+  im2 = s.path 'M 52 23, L 23 23, L 37 45, L 52 23 Z'
+  im2.attr "fill", color
+  im2.attr "stroke-width", 5
+
+  im.transform "t#{x-25},#{y-25}"
+  im2.transform "t#{x-25},#{y-25}"
+
+  im.animate {opacity: 0}, 6000, '<'
+  im2.animate {opacity: 0}, 6000, '<'
+
+  _.delay (-> im.animate {width:0, height:0, transform:'t0,0'}, 1000, '<'), 5000
+  _.delay (-> im2.animate {width:0, height:0, transform:'t0,0'}, 1000, '<'), 5000
+  #im.node.setAttribute "filter", "url(#i#{c}f)"
+
+  _.delay (->im.remove()), 6000
+
+
+socket = null
+
+_send = (color, x, y) ->
+  socket.emit 'dot', [color, x, y]
+  _draw color, x, y
+
+$ ->
+  socket = io.connect()
+  socket.on 'dot', ([color, x, y]) ->
+    _draw color, x, y
+
+
+
+  s = window.s = Raphael 'ct', $(window).width()-5, $(window).height()-5
+
+  im = s.path 'M25 3, L 0 50, L 50 50, L 25 3 Z'
+  im.attr "stroke-width", 0
+  im.attr "fill", color
+  im2 = s.path 'M 52 23, L 23 23, L 37 45, L 52 23 Z'
+  im2.attr "fill", color
+  im2.attr "stroke-width", 5
+
+  im.transform "t10,10"
+  im2.transform "t10,10"
+
+  _add_event_listener ($ 'svg')[0], 'move', _.throttle ((e) -> _send color, (_get_x e), (_get_y e) ), 50
+
+</script>
+</body>
+</html>
+
+
